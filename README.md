@@ -261,7 +261,7 @@ The autograder is designed to test your simulator (loosely-)based on real hardwa
    * L2: 128KB, 8-way, on-chip, 10 cycles hit latency, non-inclusive
    * 64B block size
    * `./cache --icache=128:2:2 --dcache=128:4:2 --l2cache=256:8:10 --blocksize=64 --memspeed=100`
-3. **MIPS R10K** - [Slides](https://web.stanford.edu/class/ee282h/handouts/Handout36.pdf):
+3. **MIPS R10K** - [Reference Manual](https://ieeexplore.ieee.org/abstract/document/491460?casa_token=xRyemPMXCU4AAAAA:qMm86PcKveY_y6TAegQChllzSccO4b6ILZRKKEeO_ml4HjQfav6hBbHDJeHR0TeXZCUPyjOpFQ):
    * I$: 32KB, 2-way, 2 cycles hit latency
    * D$: 32KB, 4-way, 2 cycles hit latency
    * L2: 128KB, 8-way, off-chip, 50 cycles hit latency, inclusive
