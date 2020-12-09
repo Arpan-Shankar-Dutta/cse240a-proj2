@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
 
 //
 // Student Information
@@ -61,6 +62,21 @@ extern uint64_t dcachePenalties;  // D$ penalties
 extern uint64_t l2cacheRefs;      // L2$ references
 extern uint64_t l2cacheMisses;    // L2$ misses
 extern uint64_t l2cachePenalties; // L2$ penalties
+
+//------------------------------------//
+//      Cache Data Structures         //
+//------------------------------------//
+
+typedef struct cache
+{
+  uint32_t *tag;
+  uint8_t *valid;
+  uint8_t *LRU;
+}cache;
+
+extern cache *icache;
+extern cache *dcache;
+extern cache *l2cache;
 
 //------------------------------------//
 //      Cache Function Prototypes     //

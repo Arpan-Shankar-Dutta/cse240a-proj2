@@ -254,5 +254,30 @@ main(int argc, char *argv[])
   fclose(stream);
   free(buf);
 
+  for(int i=0;i<icacheSets;i++)
+  {
+    free((icache+i)->valid);
+    free((icache+i)->LRU);
+    free((icache+i)->tag);
+  }
+
+  for(int i=0;i<dcacheSets;i++)
+  {
+    free((dcache+i)->valid);
+    free((dcache+i)->LRU);
+    free((dcache+i)->tag);
+  }
+
+  for(int i=0;i<l2cacheSets;i++)
+  {
+    free((l2cache+i)->valid);
+    free((l2cache+i)->LRU);
+    free((l2cache+i)->tag);
+  }
+
+  free(icache);
+  free(dcache);
+  free(l2cache);
+
   return 0;
 }
