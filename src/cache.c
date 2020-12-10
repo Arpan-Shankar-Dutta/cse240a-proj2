@@ -160,63 +160,99 @@ icache_access(uint32_t addr)
   //TODO: Implement I$
   //
 
-  icacheRefs++;
-
-  uint32_t j, penalty, hit = 0, used_entry, i_penalty;
-
-  uint8_t addr_shift_index = log2(blocksize);
-  uint8_t addr_shift_tag = log2(blocksize*icacheSets);
-  uint16_t index = (addr>>addr_shift_index)&(icacheSets - 1);
-  uint32_t tag = addr>>addr_shift_tag;
-
-  for(j=0;j<icacheAssoc;j++)
+  if(icacheSets!=0)
   {
-    if( (icache + index)->tag[j]==tag && (icache + index)->valid[j] == 1)
-    {
-      hit = 1;
-      used_entry = j;
-      break;
-    }
-  }
+    icacheRefs++;
 
-  if(hit)
-  {
+    uint32_t j, penalty, hit = 0, used_entry, i_penalty, invalid = 0, invalid_entry;
+
+    uint8_t addr_shift_index = log2(blocksize);
+    uint8_t addr_shift_tag = log2(blocksize*icacheSets);
+    uint16_t index = (addr>>addr_shift_index)&(icacheSets - 1);
+    uint32_t tag = addr>>addr_shift_tag;
+
     for(j=0;j<icacheAssoc;j++)
     {
-      if((icache+index)->LRU[j]<(icache+index)->LRU[used_entry])
+      if( (icache + index)->tag[j]==tag && (icache + index)->valid[j] == 1)
       {
-        (icache+index)->LRU[j]++;
+        hit = 1;
+        used_entry = j;
+        break;
       }
     }
-  
-    (icache+index)->LRU[used_entry] = 0;
 
-    penalty = icacheHitTime;
-  }
-  else
-  {
-    for(j=0;j<icacheAssoc;j++)
+    if(hit)
     {
-      if( (icache+index)->LRU[j]==icacheAssoc-1 )
+      for(j=0;j<icacheAssoc;j++)
       {
-        (icache+index)->valid[j] = 1;
-        (icache+index)->tag[j] = tag;
-        (icache+index)->LRU[j] = 0;
+        if((icache+index)->LRU[j]<(icache+index)->LRU[used_entry])
+        {
+          (icache+index)->LRU[j]++;
+        }
+      }
+    
+      (icache+index)->LRU[used_entry] = 0;
+
+      penalty = icacheHitTime;
+    }
+    else
+    {
+      for(j=0;j<icacheAssoc;j++)
+      {
+        if( (icache+index)->valid[j]==0 )
+        {
+          (icache+index)->valid[j] = 1;
+          (icache+index)->tag[j] = tag;
+          invalid = 1;
+          invalid_entry = j;
+          break;
+        }
+      }
+
+      if(invalid)
+      {
+        for(j=0;j<icacheAssoc;j++)
+        {
+          if((icache+index)->LRU[j]<(icache+index)->LRU[invalid_entry])
+          {
+            (icache+index)->LRU[j]++;
+          }
+        }
+    
+        (icache+index)->LRU[invalid_entry] = 0;
       }
       else
       {
-        (icache+index)->LRU[j]++;
+        for(j=0;j<icacheAssoc;j++)
+        {
+          if( (icache+index)->LRU[j]==icacheAssoc-1 )
+          {
+            (icache+index)->valid[j] = 1;
+            (icache+index)->tag[j] = tag;
+            (icache+index)->LRU[j] = 0;
+          }
+          else
+          {
+            (icache+index)->LRU[j]++;
+          }
+        }
       }
+
+      icacheMisses++;
+
+      i_penalty = l2cache_access(addr);
+      icachePenalties += i_penalty;
+      penalty = icacheHitTime + i_penalty;
     }
 
-    icacheMisses++;
-
-    i_penalty = l2cache_access(addr);
-    icachePenalties += i_penalty;
-    penalty = icacheHitTime + i_penalty;
+    return penalty;
   }
-
-  return penalty;
+  else
+  {
+    uint32_t penalty = l2cache_access(addr);
+    
+    return penalty;
+  }
 }
 
 // Perform a memory access through the dcache interface for the address 'addr'
@@ -228,64 +264,100 @@ dcache_access(uint32_t addr)
   //
   //TODO: Implement D$
   //
-  
-  dcacheRefs++;
 
-  uint32_t j, penalty, hit = 0, used_entry, d_penalty;
-
-  uint8_t addr_shift_index = log2(blocksize);
-  uint8_t addr_shift_tag = log2(blocksize*dcacheSets);
-  uint16_t index = (addr>>addr_shift_index)&(dcacheSets - 1);
-  uint32_t tag = addr>>addr_shift_tag;
-
-  for(j=0;j<dcacheAssoc;j++)
+  if(dcacheSets!=0)
   {
-    if( (dcache + index)->tag[j]==tag && (dcache + index)->valid[j] == 1)
-    {
-      hit = 1;
-      used_entry = j;
-      break;
-    }
-  }
+    dcacheRefs++;
 
-  if(hit)
-  {
+    uint32_t j, penalty, hit = 0, used_entry, i_penalty, invalid = 0, invalid_entry;
+
+    uint8_t addr_shift_index = log2(blocksize);
+    uint8_t addr_shift_tag = log2(blocksize*dcacheSets);
+    uint16_t index = (addr>>addr_shift_index)&(dcacheSets - 1);
+    uint32_t tag = addr>>addr_shift_tag;
+
     for(j=0;j<dcacheAssoc;j++)
     {
-      if((dcache+index)->LRU[j]<(dcache+index)->LRU[used_entry])
+      if( (dcache + index)->tag[j]==tag && (dcache + index)->valid[j] == 1)
       {
-        (dcache+index)->LRU[j]++;
+        hit = 1;
+        used_entry = j;
+        break;
       }
     }
-  
-    (dcache+index)->LRU[used_entry] = 0;
 
-    penalty = dcacheHitTime;
-  }
-  else
-  {
-    for(j=0;j<dcacheAssoc;j++)
+    if(hit)
     {
-      if( (dcache+index)->LRU[j]==dcacheAssoc-1 )
+      for(j=0;j<dcacheAssoc;j++)
       {
-        (dcache+index)->valid[j] = 1;
-        (dcache+index)->tag[j] = tag;
-        (dcache+index)->LRU[j] = 0;
+        if((dcache+index)->LRU[j]<(dcache+index)->LRU[used_entry])
+        {
+          (dcache+index)->LRU[j]++;
+        }
+      }
+    
+      (dcache+index)->LRU[used_entry] = 0;
+
+      penalty = dcacheHitTime;
+    }
+    else
+    {
+      for(j=0;j<dcacheAssoc;j++)
+      {
+        if( (dcache+index)->valid[j]==0 )
+        {
+          (dcache+index)->valid[j] = 1;
+          (dcache+index)->tag[j] = tag;
+          invalid = 1;
+          invalid_entry = j;
+          break;
+        }
+      }
+
+      if(invalid)
+      {
+        for(j=0;j<dcacheAssoc;j++)
+        {
+          if((dcache+index)->LRU[j]<(dcache+index)->LRU[invalid_entry])
+          {
+            (dcache+index)->LRU[j]++;
+          }
+        }
+    
+        (dcache+index)->LRU[invalid_entry] = 0;
       }
       else
       {
-        (dcache+index)->LRU[j]++;
+        for(j=0;j<dcacheAssoc;j++)
+        {
+          if( (dcache+index)->LRU[j]==dcacheAssoc-1 )
+          {
+            (dcache+index)->valid[j] = 1;
+            (dcache+index)->tag[j] = tag;
+            (dcache+index)->LRU[j] = 0;
+          }
+          else
+          {
+            (dcache+index)->LRU[j]++;
+          }
+        }
       }
+
+      dcacheMisses++;
+
+      i_penalty = l2cache_access(addr);
+      dcachePenalties += i_penalty;
+      penalty = dcacheHitTime + i_penalty;
     }
 
-    dcacheMisses++;
-
-    d_penalty = l2cache_access(addr);
-    dcachePenalties += d_penalty;
-    penalty = dcacheHitTime + d_penalty;
+    return penalty;
   }
-
-  return penalty;
+  else
+  {
+    uint32_t penalty = l2cache_access(addr);
+      
+    return penalty;
+  }
 }
 
 // Perform a memory access to the l2cache for the address 'addr'
@@ -298,61 +370,131 @@ l2cache_access(uint32_t addr)
   //TODO: Implement L2$
   //
 
-  l2cacheRefs++;
-
-  uint32_t j, penalty, hit = 0, used_entry, l2_penalty;
-
-  uint8_t addr_shift_index = log2(blocksize);
-  uint8_t addr_shift_tag = log2(blocksize*l2cacheSets);
-  uint16_t index = (addr>>addr_shift_index)&(l2cacheSets - 1);
-  uint32_t tag = addr>>addr_shift_tag;
-
-  for(j=0;j<l2cacheAssoc;j++)
+  if(l2cacheSets!=0)
   {
-    if( (l2cache + index)->tag[j]==tag && (l2cache + index)->valid[j] == 1)
-    {
-      hit = 1;
-      used_entry = j;
-      break;
-    }
-  }
+    l2cacheRefs++;
 
-  if(hit)
-  {
+    uint32_t j, penalty, hit = 0, used_entry, i_penalty, invalid = 0, invalid_entry, tag_evict, addr_evict;
+
+    uint8_t addr_shift_index = log2(blocksize);
+    uint8_t addr_shift_tag = log2(blocksize*l2cacheSets);
+    uint16_t index = (addr>>addr_shift_index)&(l2cacheSets - 1);
+    uint32_t tag = addr>>addr_shift_tag;
+
     for(j=0;j<l2cacheAssoc;j++)
     {
-      if((l2cache+index)->LRU[j]<(l2cache+index)->LRU[used_entry])
+      if( (l2cache + index)->tag[j]==tag && (l2cache + index)->valid[j] == 1)
       {
-        (l2cache+index)->LRU[j]++;
+        hit = 1;
+        used_entry = j;
+        break;
       }
     }
-  
-    (l2cache+index)->LRU[used_entry] = 0;
 
-    penalty = l2cacheHitTime;
-  }
-  else
-  {
-    for(j=0;j<l2cacheAssoc;j++)
+    if(hit)
     {
-      if( (l2cache+index)->LRU[j]==l2cacheAssoc-1 )
+      for(j=0;j<l2cacheAssoc;j++)
       {
-        (l2cache+index)->valid[j] = 1;
-        (l2cache+index)->tag[j] = tag;
-        (l2cache+index)->LRU[j] = 0;
+        if((l2cache+index)->LRU[j]<(l2cache+index)->LRU[used_entry])
+        {
+          (l2cache+index)->LRU[j]++;
+        }
+      }
+    
+      (l2cache+index)->LRU[used_entry] = 0;
+
+      penalty = l2cacheHitTime;
+    }
+    else
+    {
+      for(j=0;j<l2cacheAssoc;j++)
+      {
+        if( (l2cache+index)->valid[j]==0 )
+        {
+          (l2cache+index)->valid[j] = 1;
+          (l2cache+index)->tag[j] = tag;
+          invalid = 1;
+          invalid_entry = j;
+          break;
+        }
+      }
+
+      if(invalid)
+      {
+        for(j=0;j<l2cacheAssoc;j++)
+        {
+          if((l2cache+index)->LRU[j]<(l2cache+index)->LRU[invalid_entry])
+          {
+            (l2cache+index)->LRU[j]++;
+          }
+        }
+    
+        (l2cache+index)->LRU[invalid_entry] = 0;
       }
       else
       {
-        (l2cache+index)->LRU[j]++;
+        for(j=0;j<l2cacheAssoc;j++)
+        {
+          if( (l2cache+index)->LRU[j]==l2cacheAssoc-1 )
+          {
+            (l2cache+index)->valid[j] = 1;
+            tag_evict = (l2cache+index)->tag[j];
+            (l2cache+index)->tag[j] = tag;
+            (l2cache+index)->LRU[j] = 0;
+          }
+          else
+          {
+            (l2cache+index)->LRU[j]++;
+          }
+        }
+
+        if(inclusive)
+        {
+          addr_evict = (tag_evict<<addr_shift_tag) + (index<<addr_shift_index);
+
+          uint8_t addr_shift_index_i = log2(blocksize);
+          uint8_t addr_shift_tag_i = log2(blocksize*icacheSets);
+          uint16_t index_i = (addr_evict>>addr_shift_index_i)&(icacheSets - 1);
+          uint32_t tag_i = addr_evict>>addr_shift_tag_i;
+
+          for(j=0;j<icacheAssoc;j++)
+          {
+            if((icache + index_i)->tag[j]==tag_i)
+            {
+              (icache + index_i)->valid[j] = 0;
+              break;
+            }
+          }
+
+          uint8_t addr_shift_index_d = log2(blocksize);
+          uint8_t addr_shift_tag_d = log2(blocksize*dcacheSets);
+          uint16_t index_d = (addr_evict>>addr_shift_index_d)&(dcacheSets - 1);
+          uint32_t tag_d = addr_evict>>addr_shift_tag_d;
+
+          for(j=0;j<dcacheAssoc;j++)
+          {
+            if((dcache + index_d)->tag[j]==tag_d)
+            {
+              (dcache + index_d)->valid[j] = 0;
+              break;
+            }
+          }
+        }
       }
+
+      l2cacheMisses++;
+
+      i_penalty = memspeed;
+      l2cachePenalties += i_penalty;
+      penalty = l2cacheHitTime + i_penalty;
     }
 
-    l2cacheMisses++;
-
-    l2_penalty = memspeed;
-    l2cachePenalties += l2_penalty;
-    penalty = l2cacheHitTime + l2_penalty;
+    return penalty;
   }
-
-  return penalty; 
+  else
+  {
+    uint32_t penalty = memspeed;
+        
+    return penalty;
+  }
 }
