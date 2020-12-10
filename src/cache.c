@@ -8,6 +8,7 @@
 
 #include "cache.h"
 #include <math.h>
+#include <stdio.h>
 
 //
 // TODO:Student Information
@@ -171,7 +172,7 @@ icache_access(uint32_t addr)
     uint16_t index = (addr>>addr_shift_index)&(icacheSets - 1);
     uint32_t tag = addr>>addr_shift_tag;
 
-    for(j=0;j<icacheAssoc;j++)
+    for(j=0;j<icacheAssoc;j++)                                    //check for tag and valid for hit
     {
       if( (icache + index)->tag[j]==tag && (icache + index)->valid[j] == 1)
       {
@@ -181,7 +182,7 @@ icache_access(uint32_t addr)
       }
     }
 
-    if(hit)
+    if(hit)                                                       //procedure for cache hit
     {
       for(j=0;j<icacheAssoc;j++)
       {
@@ -195,9 +196,9 @@ icache_access(uint32_t addr)
 
       penalty = icacheHitTime;
     }
-    else
+    else                                                          //procedure for cache miss
     {
-      for(j=0;j<icacheAssoc;j++)
+      for(j=0;j<icacheAssoc;j++)                                  //find invalid entry if any
       {
         if( (icache+index)->valid[j]==0 )
         {
@@ -209,7 +210,7 @@ icache_access(uint32_t addr)
         }
       }
 
-      if(invalid)
+      if(invalid)                                                 //procedure if invalid entry found
       {
         for(j=0;j<icacheAssoc;j++)
         {
@@ -221,7 +222,7 @@ icache_access(uint32_t addr)
     
         (icache+index)->LRU[invalid_entry] = 0;
       }
-      else
+      else                                                         //If no invalid entry found use LRU to find victim
       {
         for(j=0;j<icacheAssoc;j++)
         {
@@ -240,7 +241,7 @@ icache_access(uint32_t addr)
 
       icacheMisses++;
 
-      i_penalty = l2cache_access(addr);
+      i_penalty = l2cache_access(addr);                            //Call L2 on L1 miss
       icachePenalties += i_penalty;
       penalty = icacheHitTime + i_penalty;
     }
@@ -259,7 +260,7 @@ icache_access(uint32_t addr)
 // Return the access time for the memory operation
 //
 uint32_t
-dcache_access(uint32_t addr)
+dcache_access(uint32_t addr)                                          //Implemented same as icache_access
 {
   //
   //TODO: Implement D$
@@ -364,8 +365,8 @@ dcache_access(uint32_t addr)
 // Return the access time for the memory operation
 //
 uint32_t
-l2cache_access(uint32_t addr)
-{
+l2cache_access(uint32_t addr)                                      //implemented similar to icache_access
+{                                                                  //Differences are highlighted in comments
   //
   //TODO: Implement L2$
   //
@@ -448,8 +449,8 @@ l2cache_access(uint32_t addr)
           }
         }
 
-        if(inclusive)
-        {
+        if(inclusive)                                                             //Check if L2 is inclusive
+        {                                                                         //If yes, calculate evicted address on L2 miss and invalidate in I and D cache
           addr_evict = (tag_evict<<addr_shift_tag) + (index<<addr_shift_index);
 
           uint8_t addr_shift_index_i = log2(blocksize);
@@ -484,7 +485,7 @@ l2cache_access(uint32_t addr)
 
       l2cacheMisses++;
 
-      i_penalty = memspeed;
+      i_penalty = memspeed;                                //memory acces on miss
       l2cachePenalties += i_penalty;
       penalty = l2cacheHitTime + i_penalty;
     }
