@@ -198,6 +198,8 @@ icache_access(uint32_t addr)
     }
     else                                                          //procedure for cache miss
     {
+      i_penalty = l2cache_access(addr);                           //Call L2 on L1 miss
+
       for(j=0;j<icacheAssoc;j++)                                  //find invalid entry if any
       {
         if( (icache+index)->valid[j]==0 )
@@ -241,7 +243,6 @@ icache_access(uint32_t addr)
 
       icacheMisses++;
 
-      i_penalty = l2cache_access(addr);                            //Call L2 on L1 miss
       icachePenalties += i_penalty;
       penalty = icacheHitTime + i_penalty;
     }
@@ -303,6 +304,8 @@ dcache_access(uint32_t addr)                                          //Implemen
     }
     else
     {
+      i_penalty = l2cache_access(addr);
+      
       for(j=0;j<dcacheAssoc;j++)
       {
         if( (dcache+index)->valid[j]==0 )
@@ -346,7 +349,6 @@ dcache_access(uint32_t addr)                                          //Implemen
 
       dcacheMisses++;
 
-      i_penalty = l2cache_access(addr);
       dcachePenalties += i_penalty;
       penalty = dcacheHitTime + i_penalty;
     }
